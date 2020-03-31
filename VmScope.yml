@@ -1,0 +1,26 @@
+model: enum
+data:
+  cleantype: VmScope
+  type: VmScope
+  namespace: VirtualMachine
+  field:
+    - name: Unknown
+      token: Unknown
+    - name: TopLevel
+      token: TopLevel
+    - name: Function
+      token: Function
+  unknown:
+    name: Unknown
+  mapping:
+    - name: LanguageName
+      from: VmScope
+      to: std::string
+      unknown: "\"\""
+      map:
+        - from: VmScope::Unknown
+          to: "\"\""
+        - from: VmScope::TopLevel
+          to: "\"top\""
+        - from: VmScope::Function
+          to: "\"in_function\""

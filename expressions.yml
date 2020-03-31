@@ -1,0 +1,1380 @@
+model: expression
+data:
+  object:
+    - type: Binary
+      header:
+        - "\"Math/Expression.hpp\""
+      valueType:
+        indirect: left
+      member:
+        - name: Left
+          internal: left
+          type: Expression
+          default: nullptr
+        - name: Right
+          internal: right
+          type: Expression
+          default: nullptr
+        - name: Operation
+          internal: operation
+          type: BinaryOperation
+          default: BinaryOperation::Unknown
+      constructor:
+        - name: custom
+          parameter:
+            - left
+            - operation
+            - right
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          bool addBraces = _operation == BinaryOperation::OrOr ||
+                           _operation == BinaryOperation::AndAnd;
+          std::string braceStart = addBraces ? "(" : "";
+          std::string braceEnd = addBraces ? ")" : "";
+          return ExpressionInfo(braceStart +
+                                _left->toString(friendly) + " " +
+                                _toOperationTokens() + " " +
+                                _right->toString(friendly) + braceEnd);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: Init
+            token: ":="
+          - name: Add
+            token: "+"
+          - name: AddAssign
+            token: "+="
+          - name: Sub
+            token: "-"
+          - name: SubAssign
+            token: "-="
+          - name: Mul
+            token: "*"
+          - name: MulAssign
+            token: "*="
+          - name: Div
+            token: "/"
+          - name: DivAssign
+            token: "/="
+          - name: Rem
+            token: "%"
+          - name: RemAssign
+            token: "%="
+          # Relational operators
+          - name: Less
+            token: "<"
+          - name: Greater
+            token: ">"
+          - name: LessEq
+            token: "<="
+          - name: GreaterEq
+            token: ">="
+          - name: EqEq
+            token: "=="
+          - name: Eq
+            token: "="
+          - name: NotEq
+            token: "!="
+        # Logical and bitwise operators
+          - name: And
+            token: "&"
+          - name: AndAssign
+            token: "&="
+          - name: AndAnd
+            token: "&&"
+          - name: Or
+            token: "|"
+          - name: OrAssign
+            token: "|="
+          - name: OrOr
+            token: "||"
+          - name: ShiftLeft
+            token: "<<"
+          - name: ShiftLeftAssign
+            token: "<<="
+          - name: ShiftRight
+            token: ">>"
+          - name: ShiftRightAssign
+            token: ">>="
+          - name: Xor
+            token: "^"
+          - name: XorAssign
+            token: "^="
+          - name: Imply
+            token: "==>"
+        # Combining operators
+          - name: Comma
+            token: ","
+        # AI operation
+          - name: Widen
+            token: widen
+          - name: Narrow
+            token: narrow
+          - name: Extend
+            token: ext
+          - name: Intersect
+            token: intersect
+        mapping:
+          - name: AssignFormToNonAssign
+            from: BinaryOperation
+            to: BinaryOperation
+            unknown: BinaryOperation::Unknown
+            map:
+              - from: BinaryOperation::AddAssign
+                to: BinaryOperation::Add
+              - from: BinaryOperation::SubAssign
+                to: BinaryOperation::Sub
+              - from: BinaryOperation::MulAssign
+                to: BinaryOperation::Mul
+              - from: BinaryOperation::DivAssign
+                to: BinaryOperation::Div
+              - from: BinaryOperation::AndAssign
+                to: BinaryOperation::And
+              - from: BinaryOperation::OrAssign
+                to: BinaryOperation::Or
+              - from: BinaryOperation::ShiftLeftAssign
+                to: BinaryOperation::ShiftLeft
+              - from: BinaryOperation::ShiftRightAssign
+                to: BinaryOperation::ShiftRight
+              - from: BinaryOperation::XorAssign
+                to: BinaryOperation::Xor
+    - type: Nop
+      header:
+        - "\"Math/Expression.hpp\""
+      valueType:
+        direct: "\"int\""
+      override:
+        ToString: |
+          return ExpressionInfo(std::string("<nop>"));
+    - type: Annotation
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - text
+      member:
+        - name: Text
+          internal: text
+          type: std::string
+          default: "\"\""
+      valueType:
+        direct: "\"int\""
+      override:
+        ToString: |
+          return ExpressionInfo(std::string("annotate") + _text);
+    - type: ArraySubscript
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - array
+            - index
+      member:
+        - name: Array
+          internal: array
+          type: Expression
+          default: nullptr
+        - name: Index
+          internal: index
+          type: Expression
+          default: nullptr
+      valueType:
+        direct: "\"int\""
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(_array->toString(friendly) + "[" +
+                                _index->toString(friendly) + "]");
+    - type: Cast
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - targetType
+        - name: custom2
+          parameter:
+            - targetType
+            - expr
+        - name: custom3
+          parameter:
+            - targetType
+            - expr
+            - implicit
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+        - name: TargetType
+          internal: targetType
+          type: std::string
+          default: "\"\""
+        - name: Implicit
+          internal: implicit
+          type: bool
+          default: false
+      valueType:
+        direct: _targetType
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+
+          if (friendly || isImplicit())
+              return ExpressionInfo(_expr->toString(friendly));
+
+          return ExpressionInfo(
+              std::string("((") + _targetType + ")" +
+              _expr->toString(friendly) +
+              ")");
+        LValue: |
+          return ExpressionInfo(true);
+    - type: CompoundLiteral
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom1
+          parameter:
+            - targetType
+        - name: custom2
+          parameter:
+            - targetType
+            - expr
+      member:
+        - name: TargetType
+          internal: targetType
+          type: std::string
+          default: "\"\""
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        direct: "_targetType"
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(
+              "((" + _targetType + "){" + _expr->toString(friendly) +
+              "})");
+    - type: Compound
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom1
+          parameter:
+            - operation
+        - name: custom2
+          parameter:
+            - operation
+            - exprs
+      member:
+        - name: Operation
+          internal: operation
+          type: CompoundOperation
+          default: CompoundOperation::Unknown
+        - name: Expressions
+          internal: exprs
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Expression
+      valueType:
+        direct: "\"bool\""
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          std::string s;
+          bool        first = true;
+
+          s.reserve(40);
+          s += toOperationTokens() + "(";
+          for (auto &expr : _exprs)
+          {
+              if (!first)
+                  s += ", ";
+              s += expr->toString(friendly);
+              first = false;
+          }
+
+          if (!first && _operation == CompoundOperation::BlockWithResult)
+          {
+              s += "->r";
+          }
+
+          s += ")";
+          return ExpressionInfo(s);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: TranslationUnit
+            token: "tu()"
+          - name: Block
+            token: "()"
+          - name: BlockWithResult
+            token: "(result)"
+    - type: ConstObject
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        indirect: expr
+    - type: ConstReference
+      base: ConstObjectExpression
+      constructor:
+        - name: custom
+          parameter:
+            - expr
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+        - "\"Math/ConstObjectExpression.hpp\""
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+          present: false
+      valueType:
+        indirect: expr
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          if (friendly)
+              return ExpressionInfo(_expr->toString(friendly));
+          return ExpressionInfo(refId(getOid(), ObjectType::ConstRef));
+    - type: ConstVariable
+      base: ConstObjectExpression
+      constructor:
+        - name: custom
+          parameter:
+            - expr
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+        - "\"Math/ConstObjectExpression.hpp\""
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+          present: false
+      valueType:
+        indirect: expr
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          if (friendly)
+              return ExpressionInfo(_expr->toString(friendly));
+          return ExpressionInfo(refId(getOid(), ObjectType::ConstVal));
+    - type: Declaration
+      header:
+        - "<string>"
+        - "\"Concept/Resource.hpp\""
+        - "\"Math/Expression.hpp\""
+      dependency:
+        - namespace: Concept
+          why: due to Resource
+      constructor:
+        - name: custom
+          parameter:
+            - resources
+        - name: custom_one_resource
+          parameter:
+            - "const Resource &resource"
+          extra: |
+            _resources.push_back(resource);
+      member:
+        - name: Resources
+          internal: resources
+          type: std::vector<Resource>
+          default: std::vector<Resource>()
+          vector:
+            type: Resource
+            singular: Resource
+      function:
+        - name: getResource
+          headerSignature: "Resource getResource() const"
+          sourceSignature: |
+            Resource
+            DeclarationExpression::getResource() const
+          body: |
+            core_assert(_resources.size() <= 1,
+                "There must be at most one resource to use this method");
+            return _resources.size() == 1 ? _resources[0] : nullptr;
+      valueType:
+        code: |
+          return ExpressionInfo(
+              _resources.size() == 1 ? _resources[0]->getValueType() : "");
+      override:
+        ToString: |
+          std::string s;
+          for (auto &res : _resources)
+          {
+              if (s != "")
+                  s += ", ";
+              if (res == nullptr)
+                  s += "<null>";
+              else
+                  s += res->getValueType() + " " + res->getName();
+          }
+          return ExpressionInfo("declare(" + s + ")");
+    - type: InitList
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - exprs
+      member:
+        - name: Expressions
+          internal: exprs
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Expression
+      valueType:
+        code: |
+          return ExpressionInfo(
+              (_exprs.size() > 0) ? (_exprs[0]->getValueType() + "[]")
+                                  : "");
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          int  i = 0;
+          std::string s;
+
+          s.reserve(100);
+          s += "{";
+
+          for (auto &expr : _exprs)
+          {
+              if (i > 0)
+                  s += ",";
+              s += expr->toString(friendly);
+              i++;
+          }
+
+          s += "}";
+          return ExpressionInfo(s);
+    - type: ImplicitInit
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - storedType
+      member:
+        - name: StoredType
+          internal: storedType
+          type: std::string
+          default: "\"\""
+      valueType:
+        direct: _storedType
+      override:
+        ToString: |
+          return ExpressionInfo(std::string("implicit ") + _storedType);
+    - type: Invocation
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - callee
+            - arguments
+      member:
+        - name: Callee
+          internal: callee
+          type: Expression
+          default: nullptr
+        - name: Arguments
+          internal: arguments
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Argument
+      valueType:
+        indirect: callee
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          int  i = 0;
+          std::string s;
+
+          s.reserve(100);
+          s += _callee->toString(friendly) + "(";
+
+          for (auto &expr : _arguments)
+          {
+              if (i > 0)
+                 s += ",";
+              s += expr->toString(friendly);
+              i++;
+          }
+
+          s += ")";
+          return ExpressionInfo(s);
+    - type: Literal
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+        - "\"Math/TransformedValue.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - value
+          extra: |
+            _isString = false;
+        - name: custom2
+          parameter:
+            - stringValue
+          extra: |
+            _isString = true;
+      member:
+        - name: Value
+          internal: value
+          type: TransformedValue
+          default: TransformedValue((wuint)0, IntegralTypeKind::U32)
+          extra:
+            set: |
+              _isString = false;
+        - name: StringValue
+          internal: stringValue
+          type: std::string
+          default: "\"\""
+          extra:
+            set: |
+              _isString = true;
+        - name: String
+          internal: isString
+          type: bool
+          default: false
+      valueType:
+        direct: getIntegralTypeKindStandardString(_value.getOriginalKind())
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          if (_isString)
+              return ExpressionInfo("\"" + _stringValue + "\"");
+          return ExpressionInfo(_value.toString());
+    - type: MemberAccess
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - object
+            - memberName
+            - arrow
+      member:
+        - name: Object
+          internal: object
+          type: Expression
+          default: nullptr
+        - name: MemberName
+          internal: memberName
+          type: std::string
+          default: "\"\""
+        - name: Arrow
+          internal: arrow
+          type: bool
+          default: false
+          preposition: has
+      valueType:
+        code: |
+          core_assert(0, "ValueType for MemberAccess not implemented");
+          return "";
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(
+                  _object->toString(friendly) + (_arrow ? "->" : ".") +
+                  _memberName);
+        LValue: |
+          return ExpressionInfo(true);
+    - type: Paren
+      header:
+        - "<string>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - expr
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        code: |
+          core_assert(0, "ValueType for MemberAccess not implemented");
+          return "";
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo("(" + _expr->toString(friendly) + ")");
+        LValue: |
+          return ExpressionInfo(_expr->isLvalue());
+    - type: PostfixUnary
+      header:
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - expr
+      member:
+        - name: Operation
+          internal: operation
+          type: PostfixUnaryOperation
+          default: PostfixUnaryOperation::Unknown
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        indirect: expr
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(_expr->toString(friendly) +
+              _toOperationTokens());
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: Inc
+            token: "++"
+          - name: Dec
+            token: "--"
+    - type: Predefined
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+      member:
+        - name: Operation
+          internal: operation
+          type: PredefinedOperation
+          default: PredefinedOperation::Unknown
+      valueType:
+        code: |
+          if (_operation == PredefinedOperation::True ||
+              _operation == PredefinedOperation::False)
+              return ExpressionInfo(std::string("bool"));
+
+          if (_operation == PredefinedOperation::Null)
+              return ExpressionInfo(std::string("int"));
+          return ExpressionInfo(std::string("int"));
+      override:
+        ToString: |
+          return ExpressionInfo(_toOperationTokens());
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: "True"
+            token: "\\true"
+          - name: "False"
+            token: "\\false"
+          - name: "Result"
+            token: "\\result"
+          - name: "Null"
+            token: "\\null"
+          - name: "Func"
+            token: "func"
+          - name: "Function"
+            token: "function"
+          - name: "LFunction"
+            token: "lfunction"
+          - name: "FuncDName"
+            token: "func_dname"
+          - name: "FuncSig"
+            token: "func_sig"
+          - name: "LFuncSig"
+            token: "lfunc_sig"
+          - name: "PrettyFunction"
+            token: "pretty_function"
+          - name: "PrettyFunctionNoVirtual"
+            token: "pretty_function_no_virtual"
+          - name: "Internal"
+            token: "\\internal"
+    - type: Predicate
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - exprs
+        - name: custom_one
+          parameter:
+            - operation
+            - const Expression &expr
+          extra: |
+            _exprs.push_back(expr);
+      member:
+        - name: Operation
+          internal: operation
+          type: PredicateOperation
+          default: PredicateOperation::Unknown
+        - name: Expressions
+          internal: exprs
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Expression
+      valueType:
+        direct: "\"bool\""
+      function:
+        - name: getSingleExpression
+          headerSignature: Expression getSingleExpression() const
+          sourceSignature:
+            Expression
+            PredicateExpression::getSingleExpression() const
+          body:
+            if (_exprs.size() == 0)
+                return nullptr;
+
+            core_assert(_exprs.size() == 1,
+                        "There must be a single expression in predicate");
+            return _exprs[0];
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          std::string s;
+          bool        first = true;
+
+          s.reserve(40);
+          s += toOperationTokens() + "(";
+          for (auto &expr : _exprs)
+          {
+              if (!first)
+                  s += ", ";
+              s += expr->toString(friendly);
+              first = false;
+          }
+          s += ")";
+          return ExpressionInfo(s);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: Valid
+            token: valid
+          - name: ValidRead
+            token: valid_read
+          - name: Separated
+            token: separated
+          - name: Initialized
+            token: initialized
+          - name: Dangling
+            token: dangling
+          - name: Fresh
+            token: fresh
+          - name: Freed
+            token: freed
+          - name: BlockLength
+            token: block_length
+          - name: BaseAddr
+            token: base_addr
+          - name: Length
+            token: length
+          - name: Old
+            token: old
+          - name: Prev
+            token: prev
+          - name: Next
+            token: next
+    - type: PrefixUnary
+      header:
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - expr
+      member:
+        - name: Operation
+          internal: operation
+          type: PrefixUnaryOperation
+          default: PrefixUnaryOperation::Unknown
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        code: |
+          core_assert(0, "Not fixed for PrefixUnaryExpression");
+          return _expr->getValueType();
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(_toOperationTokens() +
+              "(" + _expr->toString(friendly) + ")");
+        LValue: |
+          /* Valid dereference (*x) always produces lvalues. */
+          if (_operation == PrefixUnaryOperation::Deref)
+              return ExpressionInfo(true);
+
+          /*
+           * 1). All &x-like expressions are not lvalues
+           * 2). If expression below is not lvalue, the upper cannot be
+           *     as well. The exception is dereference which therefore
+           *     must be processed BEFORE this check.
+           * 3). Increment and decrement themselves always produce
+           *     rvalues.
+           */
+          if ((_operation == PrefixUnaryOperation::AddrOf) || !_expr->isLvalue() ||
+              (_operation == PrefixUnaryOperation::Inc) ||
+              (_operation == PrefixUnaryOperation::Dec))
+              return ExpressionInfo(false);
+
+          return ExpressionInfo(false);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: AddrOf
+            token: "&"
+          - name: Deref
+            token: "*"
+          - name: Plus
+            token: "+"
+          - name: Minus
+            token: "-"
+          - name: Inc
+            token: "++"
+          - name: Dec
+            token: "--"
+          - name: Reverse
+            token: "~"
+          - name: Not
+            token: "!"
+          - name: SizeOf
+            token: "sizeof"
+          - name: AlignOf
+            token: "alignof"
+          - name: Extension
+            token: "__extension__"
+    - type: Quantified
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - quantified
+            - expr
+        - name: custom_only_op
+          parameter:
+            - operation
+      member:
+        - name: Operation
+          internal: operation
+          type: QuantifiedOperation
+          default: QuantifiedOperation::Unknown
+        - name: Quantified
+          internal: quantified
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Quantified
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        indirect: expr
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          std::string s;
+          bool        first = true;
+
+          s.reserve(40);
+          s += toOperationTokens();
+          for (auto &expr : _quantified)
+          {
+              if (!first)
+                  s += ", ";
+              s += expr->toString(friendly);
+              first = false;
+          }
+          s += " " + _expr->toString(friendly);
+          return ExpressionInfo(s);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: ForAll
+            token: "∀"
+          - name: Exists
+            token: "∃"
+    - type: Reference
+      header:
+        - "<string>"
+        - "\"Concept/Resource.hpp\""
+        - "\"Concept/ResourceKey.hpp\""
+        - "\"Utils/ResourceUtils.hpp\""
+        - "\"Math/Expression.hpp\""
+      dependency:
+        - namespace: Concept
+          why: due to Resource
+        - namespace: Utils
+          why: due to ResourceUtils
+      constructor:
+        - name: custom
+          parameter:
+            - resource
+          extra: |
+            _resourceKey = ResourceUtils::createKey(resource);
+        - name: custom_two
+          parameter:
+            - resource
+            - resourceKey
+      member:
+        - name: Resource
+          internal: resource
+          type: Resource
+          default: nullptr
+        - name: AttachedName
+          internal: attachedName
+          type: std::string
+          default: "\"\""
+        - name: ResourceKey
+          internal: resourceKey
+          type: ResourceKey
+          default: ResourceKey()
+      valueType:
+        code: |
+          return ExpressionInfo(_resourceKey.getType());
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo(refIdNameType(_resource->getOid(),
+                                              _resourceKey.getName(),
+                                              _resourceKey.getType(),
+                                              ObjectType::Resource) +
+              (_attachedName != ""
+                  ? (" /*" + _attachedName + "*/")
+                  : ""));
+        LValue: |
+          return ExpressionInfo(true);
+    - type: Return
+      header:
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - expr
+      member:
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+      valueType:
+        indirect: expr
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          return ExpressionInfo("return " + _expr->toString(friendly));
+    - type: Set
+      header:
+        - "<vector>"
+        - "\"Math/Expression.hpp\""
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - exprs
+      member:
+        - name: Operation
+          internal: operation
+          type: SetOperation
+          default: SetOperation::Unknown
+        - name: Expressions
+          internal: exprs
+          type: std::vector<Expression>
+          default: std::vector<Expression>()
+          vector:
+            type: Expression
+            singular: Expression
+      function:
+        - name: isEmpty
+          headerSignature: bool isEmpty() const
+          sourceSignature: |
+            bool
+            SetExpression::isEmpty() const
+          body: |
+            return _exprs.size() == 0;
+      valueType:
+        code: |
+          if (_exprs.size() > 0)
+              return _exprs[0]->getValueType();
+          return "int []";
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          std::string s;
+          bool first = true;
+          std::string tokStart = "(", tokEnd = ")", tok;
+          bool exceptFirst = false;
+
+          if (_operation == SetOperation::ConditionSet)
+          {
+              exceptFirst = true;
+              tok = ", ";
+              s +=_exprs[0]->toString(friendly) + " | ";
+          }
+
+          if (_operation == SetOperation::Set)
+          {
+              if (isEmpty())
+              {
+                  return ExpressionInfo("Ø");
+              }
+              tokStart = "{";
+              tokEnd = "}";
+              tok = ", ";
+          }
+          else if (_operation == SetOperation::Union)
+          {
+              tok = "∪";
+          }
+          else if (_operation == SetOperation::Intersection)
+          {
+              tok = "∩";
+          }
+          else if (_operation == SetOperation::Range)
+          {
+              tok = "..";
+          }
+
+          s += _toOperationTokens() + "(";
+          for (auto &expr : _exprs)
+          {
+              if (!first)
+                  s += ", ";
+              if (!first || !exceptFirst)
+                  s += expr->toString(friendly);
+              first = false;
+          }
+          s += ")";
+
+          return ExpressionInfo(s);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: Set
+            token: "{}"
+          - name: Union
+            token: "∪"
+          - name: Intersection
+            token: "∩"
+          - name: Range
+            token: ".."
+          - name: ConditionSet
+            token: "(generator|condition)"
+    - type: Ternary
+      header:
+        - "\"Math/Expression.hpp\""
+      valueType:
+        indirect: left
+      member:
+        - name: Operation
+          internal: operation
+          type: TernaryOperation
+          default: TernaryOperation::Unknown
+        - name: Condition
+          internal: cond
+          type: Expression
+          default: nullptr
+        - name: Left
+          internal: left
+          type: Expression
+          default: nullptr
+        - name: Right
+          internal: right
+          type: Expression
+          default: nullptr
+      constructor:
+        - name: custom
+          parameter:
+            - operation
+            - cond
+            - left
+            - right
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          if (_operation == TernaryOperation::IfStatement)
+          {
+              return ExpressionInfo(std::string("if ") +
+                  _cond->toString(friendly) + " { " +
+                  _left->toString(friendly) + " } else { " +
+                  _right->toString(friendly) + " }");
+          }
+          else
+          {
+              return ExpressionInfo(
+                  _cond->toString(friendly) + " ? " +
+                  _left->toString(friendly) + " : " +
+                  _right->toString(friendly));
+          }
+        LValue: |
+          return ExpressionInfo(_left->isLvalue() || _right->isLvalue());
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: If
+            token: "?:"
+          - name: IfStatement
+            token: "?:{}"
+    - type: UnassignedDeclaration
+      header:
+        - "\"Math/Expression.hpp\""
+      valueType:
+        direct: _type
+      member:
+        - name: Type
+          internal: type
+          type: std::string
+          default: "\"\""
+        - name: VariableName
+          internal: variableName
+          type: std::string
+          default: "\"\""
+      constructor:
+        - name: custom
+          parameter:
+            - type
+            - variableName
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+              return ExpressionInfo(getType() + " " + getVariableName());
+        LValue: |
+          return ExpressionInfo(true);
+    - type: UnassignedReference
+      header:
+        - "\"Math/Expression.hpp\""
+      member:
+        - name: VariableName
+          internal: variableName
+          type: std::string
+          default: "\"\""
+      constructor:
+        - name: custom
+          parameter:
+            - variableName
+      override:
+        ToString: |
+          return ExpressionInfo(getVariableName());
+        LValue: |
+          return ExpressionInfo(true);
+    - type: Variable
+      header:
+        - "\"Math/Expression.hpp\""
+      member:
+        - name: StoredType
+          internal: storedType
+          type: std::string
+          default: "\"\""
+        - name: StoredName
+          internal: storedName
+          type: std::string
+          default: "\"\""
+        - name: Checkpoint
+          internal: checkpoint
+          type: int
+          default: "0"
+        - name: Revision
+          internal: revision
+          type: int
+          default: "0"
+      constructor:
+        - name: custom_two
+          parameter:
+            - storedName
+            - storedType
+        - name: custom_four
+          parameter:
+            - storedName
+            - storedType
+            - checkpoint
+            - revision
+      valueType:
+        code: |
+          return ExpressionInfo(std::string(_storedType));
+      override:
+        ToString: |
+          if (_storedName != "")
+              return ExpressionInfo(getFullName());
+          return ExpressionInfo(std::string("var(of " + _storedType + ")"));
+        LValue: |
+          return ExpressionInfo(true);
+      function:
+        - name: getFullName
+          headerSignature: "std::string getFullName() const"
+          sourceSignature: |
+            std::string
+            VariableExpression::getFullName() const
+          body: |
+            std::string name;
+
+            name.reserve(_storedName.size() + 20);
+            name += "var_";
+            if (_checkpoint != 0)
+                name += "c" + std::to_string(_checkpoint) + "_";
+            if (_revision != 0)
+                name += std::to_string(_revision) + "_";
+            name += _storedName;
+            return name;
+    - type: With
+      header:
+        - "\"Math/Expression.hpp\""
+      member:
+        - name: Operation
+          internal: operation
+          type: WithOperation
+          default: WithOperation::Unknown
+        - name: Expression
+          internal: expr
+          type: Expression
+          default: nullptr
+        - name: SubscriptExpression
+          internal: subscriptExpr
+          type: Expression
+          default: nullptr
+        - name: ResultExpression
+          internal: resultExpr
+          type: Expression
+          default: nullptr
+        - name: MemberName
+          internal: memberName
+          type: std::string
+          default: "\"\""
+      constructor:
+        - name: custom_with_index
+          parameter:
+            - expr
+            - subscriptExpr
+            - resultExpr
+          extra: |
+            _operation = WithOperation::WithIndex;
+        - name: custom_with_member
+          parameter:
+            - expr
+            - memberName
+            - resultExpr
+          extra: |
+            _operation = WithOperation::WithMember;
+        - name: custom_with_operation
+          parameter:
+            - operation
+            - expr
+            - memberName
+            - subscriptExpr
+            - resultExpr
+      valueType:
+        code: |
+          core_assert(0, "Not fixed for WithExpression");
+          return _expr->getValueType();
+      override:
+        ToString: |
+          bool friendly = kind == ExpressionInfoKind::ToStringFriendly;
+          if (_operation == WithOperation::WithMember)
+          {
+              return ExpressionInfo("(" + _expr->toString(friendly) +
+                  " with ." +
+                  _memberName + " := " +
+                  _resultExpr->toString(friendly) + ")");
+          }
+          else
+          {
+              return ExpressionInfo("(" + _expr->toString(friendly) +
+                  " with [" +
+                  _subscriptExpr->toString(friendly) + "] := " +
+                  _resultExpr->toString(friendly) + ")");
+          }
+        LValue: |
+          return ExpressionInfo(true);
+      operation:
+        unknown:
+          name: Unknown
+        element:
+          - name: Unknown
+            token: unknown
+          - name: WithMember
+            token: "with ."
+          - name: WithIndex
+            token: "with []"
+    - type: Type
+      shortcut: ExprType
+      header:
+        - "\"Math/Expression.hpp\""
+      member:
+        - name: AttachedType
+          internal: attachedType
+          type: std::string
+          default: "\"\""
+      constructor:
+        - name: custom
+          parameter:
+            - attachedType
+      valueType:
+        code: |
+          return _attachedType;
+      override:
+        ToString: |
+          return ExpressionInfo(_attachedType);

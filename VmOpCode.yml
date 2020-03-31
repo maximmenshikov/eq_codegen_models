@@ -1,0 +1,184 @@
+model:
+  - enum
+  - enum_verify
+  - command
+  - vmir_mapping
+data:
+  cleantype: VmOpCode
+  type: VmOpCode
+  namespace: VirtualMachine
+  command:
+    - name: VmCommand_Base
+      base:
+        - ObjectWithProps
+      header:
+        - "\"ObjectManagement/ObjectWithProps.hpp\""
+        - "\"VirtualMachine/VmCommandProperty.hpp\""
+        - "\"VirtualMachine/VmScope.hpp\""
+        - "\"VirtualMachine/VmOpCode.hpp\""
+      member:
+        - name: Kind
+          member_name: kind
+          type: VmOpCode
+          pure: True
+          read_only: True
+        - name: Property
+          member_name: property
+          type: VmCommandProperty
+        - name: Scope
+          member_name: scope
+          type: VmScope
+    - name: VmCommand_Expression
+      base: VmCommand_Base
+      header:
+        - "\"VirtualMachine/VmCommand_Base.hpp\""
+        - "\"Math/Expression.hpp\""
+      dependency:
+        - namespace: Math
+          why: due to Expression
+      member:
+        - name: Expression
+          member_name: expr
+          type: Expression
+    - name: VmCommand_Assign
+      base:
+        - VmCommand_Expression
+        - VmCommand_Resource
+      header:
+        - "\"VirtualMachine/VmCommand_Expression.hpp\""
+        - "\"VirtualMachine/VmCommand_Resource.hpp\""
+        - "\"Math/Expression.hpp\""
+        - "\"Concept/Resource.hpp\""
+      dependency:
+        - namespace: Math
+          why: due to Expression
+        - namespace: Concept
+          why: due to Resource
+      member:
+        - name: Resource
+          member_name: resource
+          type: Resource
+        - name: Object
+          member_name: object
+          type: Expression
+    - name: VmCommand_Invoke
+      base:
+        - VmCommand_Assign
+      header:
+        - "\"VirtualMachine/VmCommand_Assign.hpp\""
+        - "\"Math/ArgumentList.hpp\""
+      dependency:
+        - namespace: Math
+          why: due to Expression
+      member:
+        - name: ArgumentList
+          member_name: argList
+          type: ArgumentList
+    - name: VmCommand_Resource
+      base:
+        - VmCommand_Base
+      header:
+        - "\"VirtualMachine/VmCommand_Base.hpp\""
+        - "\"Concept/Resource.hpp\""
+      dependency:
+        - namespace: Concept
+          why: due to Resource
+      member:
+        - name: Resource
+          member_name: resource
+          type: Resource
+    - name: VmCommand_Branch
+      base:
+        - VmCommand_Expression
+      header:
+        - "\"VirtualMachine/VmCommand_Expression.hpp\""
+        - "\"VirtualMachine/VmCommandFollowup.hpp\""
+      member:
+        - name: IsLoop
+          member_name: isLoop
+          type: bool
+        - name: Followup
+          member_name: followup
+          type: VmCommandFollowup
+    - name: VmCommand_String
+      base:
+        - VmCommand_Base
+      header:
+        - "\"VirtualMachine/VmCommand_Base.hpp\""
+        - "<string>"
+      member:
+        - name: String
+          member_name: str
+          type: "std::string"
+    - name: VmCommand_StringExpression
+      base:
+        - VmCommand_String
+        - VmCommand_Expression
+      header:
+        - "\"VirtualMachine/VmCommand_String.hpp\""
+        - "\"VirtualMachine/VmCommand_Expression.hpp\""
+  field:
+    - name: Unknown
+      token: Unknown
+    - name: Declare
+      token: declare
+      base:
+        - VmCommand_Resource
+    - name: Init
+      token: init
+      base:
+        - VmCommand_Assign
+    - name: Assign
+      token: assign
+      base:
+        - VmCommand_Assign
+    - name: Load
+      token: load
+      base:
+        - VmCommand_Resource
+    - name: Check
+      token: check
+      base:
+        - VmCommand_Expression
+    - name: HiddenCheck
+      token: hidden check
+      base:
+        - VmCommand_Expression
+    - name: Constraint
+      token: constraint
+      base:
+        - VmCommand_Expression
+    - name: Branch
+      token: branch
+      base:
+        - VmCommand_Branch
+    - name: EndBranch
+      token: end branch
+      base:
+        - VmCommand_Base
+    - name: Return
+      token: return
+      base:
+        - VmCommand_Expression
+    - name: Invoke
+      token: invoke
+      base:
+        - VmCommand_Invoke
+    - name: Enter
+      token: enter
+      base:
+        - VmCommand_Resource
+    - name: Exit
+      token: exit
+      base:
+        - VmCommand_Resource
+    - name: System
+      token: system
+      base:
+        - VmCommand_StringExpression
+    - name: Annotate
+      token: annotate
+      base:
+        - VmCommand_String
+  unknown:
+    name: Unknown

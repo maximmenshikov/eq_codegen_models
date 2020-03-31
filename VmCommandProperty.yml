@@ -1,0 +1,26 @@
+model: enum
+data:
+  cleantype: VmCommandProperty
+  type: VmCommandProperty
+  namespace: VirtualMachine
+  field:
+    - name: NotAProperty
+      token: NotAProperty
+    - name: Safety
+      token: Safety
+    - name: Liveness
+      token: Liveness
+  unknown:
+    name: NotAProperty
+  mapping:
+    - name: LanguageName
+      from: VmCommandProperty
+      to: std::string
+      unknown: "\"\""
+      map:
+        - from: VmCommandProperty::NotAProperty
+          to: "\"\""
+        - from: VmCommandProperty::Safety
+          to: "\"safety\""
+        - from: VmCommandProperty::Liveness
+          to: "\"liveness\""
